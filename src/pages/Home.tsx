@@ -258,21 +258,29 @@ function PanelTeaser() {
       <div className="max-w-[1400px] mx-auto px-8">
         <p className="text-gray-400 font-bold tracking-[0.15em] uppercase text-xs mb-6">PANEL</p>
         <h2 className="text-5xl md:text-6xl font-display font-extrabold tracking-tighter mb-8 text-black">
-          Panel Announcement Coming Soon
+          Guests Are Being Announced
         </h2>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-16">
-          The panel will be revealed in waves. Until then, tease the room, not the roster.
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-6">
+          We're actively curating a panel of voices shaping the future of culture, AI, and African innovation. The lineup will be revealed in waves — each name a signal of what this room is about.
         </p>
-        <div className="flex justify-center gap-6 mb-16">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center">
-              <span className="text-gray-300 font-display text-4xl font-bold">?</span>
+        <p className="text-lg text-gray-500 max-w-xl mx-auto mb-16">
+          RSVP now to be first to know when names drop. The roster is being built for quality, not quantity.
+        </p>
+        <div className="flex justify-center gap-4 md:gap-6 mb-16">
+          {['Guest 1', 'Guest 2', 'Guest 3', 'Guest 4'].map((label, i) => (
+            <div key={i} className="group relative">
+              <div className="w-24 h-24 md:w-36 md:h-36 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center transition-all group-hover:border-gray-400 group-hover:shadow-lg">
+                <span className="text-gray-300 font-display text-3xl md:text-4xl font-bold group-hover:text-gray-400 transition-colors">?</span>
+              </div>
+              <p className="text-[10px] md:text-xs text-gray-400 font-medium tracking-wider uppercase mt-3">{label}</p>
             </div>
           ))}
         </div>
-        <Link to="/rsvp" className="inline-flex items-center gap-2 bg-black text-white font-medium px-8 py-4 rounded-full transition-all hover:bg-gray-800">
-          Join the List <ArrowRight size={16} />
-        </Link>
+        <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <Link to="/rsvp" className="inline-flex items-center justify-center gap-2 bg-black text-white font-medium px-8 py-4 rounded-full transition-all hover:bg-gray-800">
+            Join the List <ArrowRight size={16} />
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -362,19 +370,27 @@ function FAQ() {
   const faqs = [
     {
       question: "Where is the event happening?",
-      answer: "Harare, Zimbabwe. Final venue details can be sent to registrants."
+      answer: "Harare, Zimbabwe. Final venue details will be sent directly to registered attendees."
     },
     {
       question: "When is the event?",
-      answer: "The event is positioned around the week of April 30, 2026, with April 30 as the anchor date."
+      answer: "The event week runs April 27 – May 3, 2026, with April 30 as the anchor date."
     },
     {
       question: "Do I need to apply separately for the challenge?",
-      answer: "Yes. RSVP and challenge application should be separate flows, even if one person does both."
+      answer: "Yes. RSVP and the Creator Challenge application are separate. You can do both, but each has its own form."
     },
     {
-      question: "Will the panel be announced later?",
-      answer: "Yes. Keep this as a teaser until the reveal campaign is ready."
+      question: "When will panel guests be announced?",
+      answer: "We're actively announcing guests — the lineup will be revealed in waves leading up to the event. RSVP to be first to know when names drop."
+    },
+    {
+      question: "What is the 263 Suite?",
+      answer: "The 263 Suite is an artist-first AI platform being introduced in beta at this event. The Harare edition includes a live demo and spotlight."
+    },
+    {
+      question: "I have more questions — how can I ask?",
+      answer: "Use the chat assistant at the bottom right of the screen. You can type your question or tap the mic to talk to our AI voice assistant. We're here to help."
     }
   ];
 

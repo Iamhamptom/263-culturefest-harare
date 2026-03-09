@@ -8,6 +8,8 @@ import Admin from './pages/Admin';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import StickyMobileCTA from './components/StickyMobileCTA';
+import ChatBot from './components/ChatBot';
+import ElevenLabsWidget from './components/ElevenLabsWidget';
 
 export default function App() {
   return (
@@ -26,6 +28,8 @@ export default function App() {
         </main>
         <Footer />
         <StickyMobileCTA />
+        <ChatBot />
+        <ElevenLabsWidget />
       </div>
     </BrowserRouter>
   );
