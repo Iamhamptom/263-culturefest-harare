@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getUtmParams } from '../lib/utm';
+import { trackEvent } from '../lib/analytics';
 
 export default function Challenge() {
   const navigate = useNavigate();
@@ -38,6 +40,7 @@ export default function Challenge() {
     setSubmitting(true);
     setError('');
 
+    const utm = getUtmParams();
     const { error: dbError } = await supabase
       .from('culturefest_challenges')
       .insert({
@@ -58,6 +61,7 @@ export default function Challenge() {
         current_stage: formData.current_stage,
         biggest_need: formData.biggest_need,
         consent_email: formData.consent_email,
+        ...utm,
       });
 
     if (dbError) {
@@ -66,6 +70,7 @@ export default function Challenge() {
       return;
     }
 
+    trackEvent('challenge_submitted');
     navigate('/success/challenge');
   };
 

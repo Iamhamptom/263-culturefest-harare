@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getUtmParams } from '../lib/utm';
+import { trackEvent } from '../lib/analytics';
 
 export default function RSVP() {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ export default function RSVP() {
     setSubmitting(true);
     setError('');
 
+    const utm = getUtmParams();
     const { error: dbError } = await supabase
       .from('culturefest_rsvps')
       .insert({
@@ -48,6 +51,7 @@ export default function RSVP() {
         attendance_intent: formData.attendance_intent,
         challenge_interest: formData.challenge_interest,
         consent_email: formData.consent_email,
+        ...utm,
       });
 
     if (dbError) {
@@ -56,6 +60,7 @@ export default function RSVP() {
       return;
     }
 
+    trackEvent('rsvp_submitted');
     navigate('/success/rsvp');
   };
 

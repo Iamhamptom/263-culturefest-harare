@@ -4,8 +4,10 @@ import RSVP from './pages/RSVP';
 import Challenge from './pages/Challenge';
 import SuccessRSVP from './pages/SuccessRSVP';
 import SuccessChallenge from './pages/SuccessChallenge';
+import Admin from './pages/Admin';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import StickyMobileCTA from './components/StickyMobileCTA';
 
 export default function App() {
   return (
@@ -19,9 +21,11 @@ export default function App() {
             <Route path="/challenge" element={<Challenge />} />
             <Route path="/success/rsvp" element={<SuccessRSVP />} />
             <Route path="/success/challenge" element={<SuccessChallenge />} />
+            <Route path="/admin" element={<Admin />} />
           </Routes>
         </main>
         <Footer />
+        <StickyMobileCTA />
       </div>
     </BrowserRouter>
   );
