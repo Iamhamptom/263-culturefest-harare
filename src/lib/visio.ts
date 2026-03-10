@@ -244,11 +244,9 @@ export async function createRsvpCampaign(): Promise<SyncResult> {
   // Fallback: create campaign directly
   const { data: campaign, error: campErr } = await supabase.from('campaigns').insert({
     organization_id: HAMPTON_MUSIC_ORG_ID,
-    workspace_id: WORKSPACE_ID,
     name: '263 CultureFest — RSVP Drip Sequence',
     channel: 'email',
     status: 'draft',
-    description: 'Automated email sequence for 263 CultureFest Harare RSVPs. Event: April 30 week 2026.',
   }).select('id').single();
 
   if (campErr) return { ok: false, error: campErr.message, method: 'direct' };
@@ -275,11 +273,11 @@ export async function createRsvpCampaign(): Promise<SyncResult> {
 
   const sequences = enhancedSteps.map((s, i) => ({
     campaign_id: campaign.id,
-    step_order: i + 1,
+    step_number: i + 1,
     delay_days: steps[i].delay_days,
     subject: s.subject,
     body: s.body,
-    status: 'draft',
+    purpose: ['RSVP confirm', 'Keynote intro', 'Challenge CTA', 'Panel teaser', 'Product preview', 'Final push'][i],
   }));
 
   const { error: seqErr } = await supabase.from('campaign_sequences').insert(sequences);
