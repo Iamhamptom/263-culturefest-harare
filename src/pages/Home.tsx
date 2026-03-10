@@ -1,5 +1,5 @@
 import { motion, AnimatePresence, useInView } from 'motion/react';
-import { ArrowRight, ArrowDown, Sparkles, ChevronDown, Music, Disc3, Award, Globe } from 'lucide-react';
+import { ArrowRight, ArrowDown, Sparkles, ChevronDown, Music, Disc3, Award, Globe, Gift, Mail, Users, MessageCircle } from 'lucide-react';
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -119,8 +119,9 @@ function ZimFlagTransition() {
 function Preloader({ onComplete }: { onComplete: () => void }) {
   const items = [
     { type: 'logo' as const },
-    { type: 'text' as const, content: 'VisioCorp' },
-    { type: 'text' as const, content: 'Tony Duardo' }
+    { type: 'text' as const, content: '263 Culture AI Fest' },
+    { type: 'text' as const, content: 'Tony Duardo Live' },
+    { type: 'text' as const, content: 'VisioCorp' }
   ];
   const [index, setIndex] = useState(0);
 
@@ -128,14 +129,17 @@ function Preloader({ onComplete }: { onComplete: () => void }) {
     const interval = setInterval(() => {
       setIndex((prev) => (prev + 1) % items.length);
     }, 1500);
-    return () => clearInterval(interval);
+    // Auto-dismiss after 4.5 seconds
+    const timeout = setTimeout(() => onComplete(), 4500);
+    return () => { clearInterval(interval); clearTimeout(timeout); };
   }, []);
 
   return (
     <motion.div
-      className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center"
+      className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center cursor-pointer"
       exit={{ opacity: 0, y: "-100%" }}
       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      onClick={onComplete}
     >
       <div className="h-40 md:h-52 flex items-center justify-center overflow-hidden relative w-full">
         <AnimatePresence mode="wait">
@@ -165,12 +169,20 @@ function Preloader({ onComplete }: { onComplete: () => void }) {
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 1 }}
+        transition={{ delay: 0.5, duration: 0.8 }}
         onClick={onComplete}
-        className="mt-12 text-sm font-medium tracking-[0.2em] text-gray-400 hover:text-black transition-colors uppercase flex items-center gap-2 group"
+        className="mt-12 bg-black text-white px-8 py-3 rounded-full text-sm font-medium tracking-[0.15em] uppercase flex items-center gap-2 group hover:bg-gray-800 transition-colors"
       >
         Enter <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
       </motion.button>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5 }}
+        className="mt-4 text-xs text-gray-400"
+      >
+        Tap anywhere to continue
+      </motion.p>
     </motion.div>
   );
 }
@@ -200,10 +212,51 @@ export default function Home() {
         <PanelTeaser />
         <ChallengeSpotlight />
         <WhyAttend />
+        <Freebies />
+        <GetInTouch />
         <FAQ />
         <FooterCTA />
       </motion.div>
     </>
+  );
+}
+
+/* ─── Rotating Ticker ─── */
+function HeroTicker() {
+  const lines = [
+    'HARARE, ZIMBABWE · APRIL 30 WEEK',
+    'FREE RSVP · FREE WELCOME PACK',
+    'TONY DUARDO LIVE · HGA RECORDS',
+    '263 SUITE BETA · AI WORKSHOP',
+    'VISIOCORP · AFRICAN INNOVATION',
+    'CREATOR CHALLENGE · APPLY NOW',
+  ];
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIdx(p => (p + 1) % lines.length), 2800);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="h-5 overflow-hidden relative mb-6">
+      <AnimatePresence mode="wait">
+        <motion.p
+          key={idx}
+          initial={{ y: 16, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -16, opacity: 0 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute text-xs font-bold tracking-[0.15em] uppercase"
+          style={{
+            background: 'linear-gradient(90deg, #999 0%, #e0e0e0 40%, #999 80%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          {lines[idx]}
+        </motion.p>
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -219,18 +272,18 @@ function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 2.2, ease: [0.22, 1, 0.36, 1] }}
           >
-            <p className="text-gray-400 font-bold tracking-[0.15em] uppercase text-xs mb-6">
-              HARARE, ZIMBABWE · APRIL 30 WEEK
-            </p>
-            <h1 className="text-6xl md:text-7xl lg:text-[5.5rem] font-display font-extrabold tracking-tighter leading-[1.05] mb-6 text-black">
-              263 CultureFest.<br />
-              Harare Edition
+            <HeroTicker />
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-extrabold tracking-tighter leading-[1.05] mb-3 text-black">
+              263 Culture AI Fest
             </h1>
-            <p className="text-2xl text-black font-medium mb-6 tracking-tight">
-              Artists. AI. African Innovation Leadership.
+            <p className="text-lg md:text-xl font-display font-bold tracking-tight text-gray-400 mb-6">
+              1st Edition Workshop <span className="text-gray-300">x</span> Tony Duardo Live <span className="text-gray-300">x</span> <span className="text-xs align-middle tracking-wider text-gray-400">VisioCorp</span>
             </p>
-            <p className="text-lg text-gray-600 font-normal mb-10 leading-relaxed max-w-md">
-              A premium gathering built around culture, systems, and the future. Join Tony Duardo in Harare for the 263 Suite beta spotlight, keynote energy, powerful conversations, and the launch of a creator opportunity designed for the next wave.
+            <p className="text-lg text-gray-600 font-normal mb-4 leading-relaxed max-w-md">
+              A hands-on AI workshop and premium gathering exploring how AI is reshaping African creativity, music, and business. Live demos, a curated panel, and a creator challenge with real follow-up.
+            </p>
+            <p className="text-sm font-medium mb-10 flex items-center gap-2" style={{ background: 'linear-gradient(90deg, #10a3a8, #FFD200)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              RSVP to receive free access + exclusive freebies on arrival
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
@@ -249,20 +302,20 @@ function Hero() {
             initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
             animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
             transition={{ duration: 1.5, delay: 2.4, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-lg h-full rounded-[2.5rem] overflow-hidden bg-gray-100"
+            className="relative w-full max-w-lg h-full rounded-[2.5rem] overflow-hidden bg-black"
           >
             <img
-              src="/tony-hero.png"
+              src="/tony-hero.jpg"
               alt="Tony Duardo"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-top"
             />
-            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
             <div className="absolute bottom-8 left-8 right-8">
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 3.2, duration: 1 }}
-                className="text-black font-display font-bold text-lg"
+                className="font-display font-bold text-lg text-white"
               >
                 Tony Duardo
               </motion.p>
@@ -270,7 +323,7 @@ function Hero() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 3.4, duration: 1 }}
-                className="text-gray-500 text-sm"
+                className="text-gray-400 text-sm"
               >
                 Producer · Founder · Pan-African Artist
               </motion.p>
@@ -306,23 +359,25 @@ function About() {
     <section id="about" className="py-32 bg-white">
       <div className="max-w-[1400px] mx-auto px-8 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         <Reveal>
-          <p className="text-gray-400 font-bold tracking-[0.15em] uppercase text-xs mb-6">ABOUT THE EXPERIENCE</p>
+          <p className="text-gray-400 font-bold tracking-[0.15em] uppercase text-xs mb-6">ABOUT THE WORKSHOP</p>
           <h2 className="text-5xl md:text-6xl font-display font-extrabold tracking-tighter mb-8 text-black">
-            From Studio to Systems
+            AI Meets African Culture
           </h2>
           <p className="text-xl text-gray-600 leading-relaxed mb-8">
-            This Harare edition is built as a statement: artists are not just talent, they are infrastructure. The experience is designed around the 263 Suite beta story, founder-led momentum, and the belief that African creativity, when paired with systems and AI, can build the next economy.
+            This isn't a lecture — it's a hands-on workshop exploring how AI is transforming music, content, and business across Africa. Led by Tony Duardo, built by VisioCorp, and powered by the 263 Suite beta platform. You'll see live demos, real tools, and walk away with systems you can use.
           </p>
           <ul className="space-y-4">
             {[
-              "Founder-led vision and energy",
-              "AI, culture, and real opportunity",
-              "Premium atmosphere and community value",
-              "A selective challenge tied to real follow-up"
+              "Live AI tools demo — the 263 Suite beta spotlight",
+              "Hands-on workshop: AI for creators, artists, and founders",
+              "Keynote + curated panel on African innovation",
+              "Creator Challenge — apply to work closer to the movement"
             ].map((point, i) => (
               <Reveal key={i} delay={0.1 * i}>
                 <li className="flex items-start gap-3 text-black font-medium">
-                  <Sparkles className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
+                  <div className="w-7 h-7 rounded-lg icon-silver-bg flex items-center justify-center shrink-0 mt-0.5">
+                    <Sparkles className="w-3.5 h-3.5 text-gray-500" />
+                  </div>
                   <span>{point}</span>
                 </li>
               </Reveal>
@@ -372,7 +427,7 @@ function SpecialGuest() {
             <Reveal key={i} delay={0.1 * i}>
               <div className="bg-gray-900/50 border border-gray-800 rounded-[2rem] p-8 md:p-10 hover:border-gray-700 transition-colors">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white">
+                  <div className="w-10 h-10 rounded-full icon-silver-dark flex items-center justify-center text-gray-300">
                     {section.icon}
                   </div>
                   <h3 className="text-xl font-display font-bold">{section.label}</h3>
@@ -380,7 +435,7 @@ function SpecialGuest() {
                 <ul className="space-y-3">
                   {section.items.map((item, j) => (
                     <li key={j} className="flex items-start gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#FFD200] shrink-0 mt-2" />
+                      <div className="w-2 h-2 rounded-full shrink-0 mt-2" style={{ background: 'linear-gradient(135deg, #c0c0c0, #f0f0f0, #a0a0a0)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
                       <span className="text-gray-300 leading-relaxed">{item}</span>
                     </li>
                   ))}
@@ -404,8 +459,8 @@ function SpecialGuest() {
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-2">
                   {['Tyla', 'Ciza', 'TxC'].map((name, i) => (
-                    <div key={i} className="w-10 h-10 rounded-full bg-gray-800 border-2 border-black flex items-center justify-center text-xs font-bold text-white">
-                      {name[0]}
+                    <div key={i} className="w-10 h-10 rounded-full bg-gray-800 border-2 border-black flex items-center justify-center text-[10px] font-bold text-white" title={name}>
+                      {name}
                     </div>
                   ))}
                 </div>
@@ -423,20 +478,20 @@ function SpecialGuest() {
 function EventDetails() {
   const cards = [
     {
-      title: "The Show",
-      text: "A premium Harare event experience built around vision, conversation, and launch momentum."
+      title: "The Workshop",
+      text: "A hands-on AI workshop — live demos, real tools, and practical systems you can use to build, create, and grow."
     },
     {
       title: "The Keynote",
-      text: "Tony Duardo presents the vision behind artists, AI, and African innovation leadership."
+      text: "Tony Duardo presents the vision: how AI, music, and African innovation are converging into the next economy."
     },
     {
       title: "The Panel",
-      text: "A curated panel will be announced — high-value, future-facing, and worth waiting for."
+      text: "A curated panel of voices shaping culture, tech, and business in Southern Africa. Names dropping soon."
     },
     {
-      title: "The Opportunity",
-      text: "A creator challenge for selected applicants who want to build, work, and grow closer to the movement."
+      title: "The Challenge",
+      text: "A selective creator challenge — apply, get seen, and potentially work closer to the VisioCorp + HGA ecosystem."
     }
   ];
 
@@ -544,8 +599,8 @@ function ChallengeSpotlight() {
               ].map((benefit, i) => (
                 <Reveal key={i} delay={0.1 * i}>
                   <li className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shrink-0 mt-1">
-                      <ArrowRight size={14} />
+                    <div className="w-8 h-8 rounded-full icon-silver-bg flex items-center justify-center shrink-0 mt-1">
+                      <ArrowRight size={14} className="text-gray-600" />
                     </div>
                     <p className="text-gray-300 text-lg">{benefit}</p>
                   </li>
@@ -592,15 +647,112 @@ function WhyAttend() {
             <Reveal key={i} delay={0.15 * i}>
               <div className="text-center">
                 <motion.div
-                  whileHover={{ rotate: 360 }}
+                  whileHover={{ rotate: 360, scale: 1.1 }}
                   transition={{ duration: 0.6 }}
-                  className="w-16 h-16 mx-auto rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center mb-8"
+                  className="w-16 h-16 mx-auto rounded-full icon-silver-bg flex items-center justify-center mb-8"
                 >
-                  <Sparkles className="text-black" size={24} />
+                  <Sparkles className="text-gray-500" size={22} />
                 </motion.div>
                 <h3 className="text-2xl font-display font-bold text-black mb-4">{col.title}</h3>
                 <p className="text-gray-600 leading-relaxed">{col.text}</p>
               </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Freebies ─── */
+function Freebies() {
+  const perks = [
+    { icon: <Gift size={22} />, title: 'Welcome Pack', desc: 'Every RSVP gets a branded welcome pack on arrival — merch, stickers, exclusive materials.' },
+    { icon: <Sparkles size={22} />, title: '263 Suite Beta Access', desc: 'Early access to the 263 Suite AI platform — be among the first to test the tools shaping African creativity.' },
+    { icon: <Users size={22} />, title: 'VisioCorp Network', desc: 'Get plugged into the VisioCorp ecosystem — access to founders, creators, and opportunities across Southern Africa.' },
+    { icon: <Award size={22} />, title: 'Challenge Winners', desc: 'Selected challenge applicants receive mentorship, visibility, and potential collaboration with HGA Records.' },
+  ];
+
+  return (
+    <section className="py-32 bg-black text-white">
+      <div className="max-w-[1400px] mx-auto px-8">
+        <Reveal>
+          <div className="text-center mb-20">
+            <p className="text-[#FFD200] font-bold tracking-[0.15em] uppercase text-xs mb-6">FREE FOR RSVPs</p>
+            <h2 className="text-5xl md:text-6xl font-display font-extrabold tracking-tighter mb-6">
+              What You Get for Signing Up
+            </h2>
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+              This isn't just an event — it's an investment in your future. RSVP is free, and everyone who signs up gets real value.
+            </p>
+          </div>
+        </Reveal>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {perks.map((perk, i) => (
+            <Reveal key={i} delay={0.1 * i}>
+              <motion.div
+                whileHover={{ y: -8 }}
+                className="bg-gray-900/50 border border-gray-800 rounded-[2rem] p-8 hover:border-[#FFD200]/30 transition-colors h-full"
+              >
+                <div className="w-12 h-12 rounded-full icon-silver-dark flex items-center justify-center text-gray-300 mb-6">
+                  {perk.icon}
+                </div>
+                <h3 className="text-xl font-display font-bold mb-3">{perk.title}</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">{perk.desc}</p>
+              </motion.div>
+            </Reveal>
+          ))}
+        </div>
+        <Reveal delay={0.4}>
+          <div className="text-center mt-12">
+            <Link to="/rsvp" className="inline-flex items-center gap-2 bg-[#FFD200] text-black font-medium px-8 py-4 rounded-full transition-all hover:bg-[#e6be00]">
+              Claim Your Free RSVP <ArrowRight size={16} />
+            </Link>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Get In Touch ─── */
+function GetInTouch() {
+  const contacts = [
+    { icon: <Mail size={20} />, label: 'Partnerships & Sponsorships', value: 'partnerships@visiocorp.co', href: 'mailto:partnerships@visiocorp.co', desc: 'For brands, sponsors, and organizations wanting to be part of the event.' },
+    { icon: <MessageCircle size={20} />, label: 'General Enquiries', value: '@263culturefest', href: 'https://www.instagram.com/263culturefest/', desc: 'DM us on Instagram or use the chatbot on this site for quick answers.' },
+    { icon: <Users size={20} />, label: 'Media & Press', value: 'media@visiocorp.co', href: 'mailto:media@visiocorp.co', desc: 'Press accreditation, interviews, and media partnerships.' },
+  ];
+
+  return (
+    <section id="contact" className="py-32 bg-gray-50">
+      <div className="max-w-[1400px] mx-auto px-8">
+        <Reveal>
+          <div className="text-center mb-16">
+            <p className="text-gray-400 font-bold tracking-[0.15em] uppercase text-xs mb-6">GET IN TOUCH</p>
+            <h2 className="text-5xl md:text-6xl font-display font-extrabold tracking-tighter text-black mb-6">
+              Let's Build Together
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Whether you're a brand, media house, organization, or creative — there's a seat at this table. 263 CultureFest is produced by <strong>263 Culture Hub</strong> in partnership with <strong>VisioCorp</strong> and <strong>HGA Records</strong>.
+            </p>
+          </div>
+        </Reveal>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          {contacts.map((contact, i) => (
+            <Reveal key={i} delay={0.1 * i}>
+              <a
+                href={contact.href}
+                target={contact.href.startsWith('http') ? '_blank' : undefined}
+                rel={contact.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                className="bg-white border border-gray-200 rounded-[2rem] p-8 hover:border-black hover:shadow-lg transition-all block h-full group"
+              >
+                <div className="w-12 h-12 rounded-full icon-silver-bg flex items-center justify-center mb-6 group-hover:shadow-lg transition-shadow text-gray-500">
+                  {contact.icon}
+                </div>
+                <h3 className="text-lg font-display font-bold text-black mb-2">{contact.label}</h3>
+                <p className="text-[#10a3a8] font-medium text-sm mb-3">{contact.value}</p>
+                <p className="text-gray-500 text-sm leading-relaxed">{contact.desc}</p>
+              </a>
             </Reveal>
           ))}
         </div>
@@ -614,7 +766,7 @@ function FAQ() {
   const faqs = [
     {
       question: "Where is the event happening?",
-      answer: "Harare, Zimbabwe. Final venue details will be sent directly to registered attendees."
+      answer: "Harare, Zimbabwe. Venue details and directions will be shared with confirmed RSVPs closer to the date. Follow @263culturefest on socials for announcements."
     },
     {
       question: "When is the event?",
@@ -637,12 +789,24 @@ function FAQ() {
       answer: "Tony Duardo is a Pan-African producer, founder of HGA Records, and the creative force behind hits with Tyla, Uncle Waffles, Ciza, DJ Maphorisa, TxC, and more. Close to 1 billion career streams. He leads the keynote and overall vision for 263 CultureFest."
     },
     {
+      question: "Is it free?",
+      answer: "Yes — RSVP is completely free. We want the right people in the room, not a paywall. Everyone who RSVPs gets free access to the workshop, keynote, and panel, plus a branded welcome pack and 263 Suite beta access on arrival."
+    },
+    {
+      question: "What freebies do I get?",
+      answer: "RSVP attendees receive a welcome pack (branded merch, stickers, exclusive materials), early access to the 263 Suite AI platform beta, and direct access to the VisioCorp network. Creator Challenge winners get mentorship and potential collaboration opportunities with HGA Records."
+    },
+    {
+      question: "How can I partner or sponsor the event?",
+      answer: "Email partnerships@visiocorp.co for sponsorship tiers, brand activations, and media partnerships. You can also DM @263culturefest on Instagram. We're looking for brands that align with African innovation, music, and tech."
+    },
+    {
       question: "I have more questions — how can I ask?",
-      answer: "Use the chat assistant at the bottom right of the screen. You can type your question or tap the mic to talk to our AI voice assistant. We're here to help."
+      answer: "Use the chat assistant at the bottom right of the screen. You can type your question or tap the mic to talk to our AI voice assistant. Or reach out to @263culturefest on Instagram."
     }
   ];
 
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
     <section id="faq" className="py-32 bg-gray-50">

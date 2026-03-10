@@ -33,7 +33,7 @@ export default function Navbar() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          {['About', 'Event', 'Panel', 'Challenge', 'FAQ'].map((item) => (
+          {['About', 'Event', 'Panel', 'Challenge', 'Contact', 'FAQ'].map((item) => (
             <a
               key={item}
               href={item === 'Challenge' ? '/challenge' : `/#${item.toLowerCase()}`}
@@ -68,7 +68,7 @@ export default function Navbar() {
           animate={{ opacity: 1, y: 0 }}
           className="md:hidden bg-white border-t border-gray-100 px-8 py-6 space-y-4"
         >
-          {['About', 'Event', 'Panel', 'Challenge', 'FAQ'].map((item) => (
+          {['About', 'Event', 'Panel', 'Challenge', 'Contact', 'FAQ'].map((item) => (
             <a
               key={item}
               href={item === 'Challenge' ? '/challenge' : `/#${item.toLowerCase()}`}

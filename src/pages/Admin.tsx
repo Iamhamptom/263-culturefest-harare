@@ -1,10 +1,22 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import {
+  isVisioConfigured,
+  isGatewayConfigured,
+  isGeminiConfigured,
+  syncRsvpsToLeads,
+  syncChallengesToLeads,
+  reportProductMetrics,
+  runCompetitorScan,
+  createRsvpCampaign,
+} from '../lib/visio';
+import { getDebugLog, debugInfo, debugError, trackEvent } from '../lib/analytics';
+import {
   Users, FileText, MapPin, TrendingUp, Download, Star,
   Calendar, BarChart3, Eye, Clock, Filter, Search,
-  ChevronDown, ChevronUp, ExternalLink, RefreshCw, Zap
+  ChevronDown, ChevronUp, ExternalLink, RefreshCw, Zap,
+  Bug, Activity, Wifi, WifiOff
 } from 'lucide-react';
 
 const ADMIN_KEY = 'culturefest_admin_authenticated';
@@ -115,7 +127,9 @@ export default function Admin() {
   const [rsvps, setRsvps] = useState<Rsvp[]>([]);
   const [challenges, setChallenges] = useState<ChallengeApp[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'overview' | 'analytics' | 'rsvps' | 'challenges'>('overview');
+  const [tab, setTab] = useState<'overview' | 'analytics' | 'rsvps' | 'challenges' | 'visio' | 'debug'>('overview');
+  const [syncLog, setSyncLog] = useState<Array<{ time: string; action: string; status: 'ok' | 'error' | 'pending'; message: string }>>([]);
+  const [syncing, setSyncing] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [rsvpFilter, setRsvpFilter] = useState<'all' | 'Yes' | 'Maybe' | 'Need more details'>('all');
   const [challengeFilter, setChallengeFilter] = useState<'all' | 'pending' | 'reviewing' | 'shortlisted' | 'selected' | 'rejected'>('all');
@@ -124,18 +138,51 @@ export default function Admin() {
 
   useEffect(() => {
     if (!authed) return;
+    trackEvent('admin_login');
+    debugInfo('Admin session started');
     loadData();
   }, [authed]);
 
+  // Auto-report metrics to Visio every time data loads
+  const autoReport = useCallback(async (r: Rsvp[], c: ChallengeApp[]) => {
+    if (!isVisioConfigured || r.length === 0) return;
+    const shortlisted = c.filter(x => x.status === 'shortlisted' || x.status === 'selected').length;
+    const today = new Date().toISOString().split('T')[0];
+    const todayCount = [...r, ...c].filter(x => x.created_at?.startsWith(today)).length;
+    const consentRate = r.length > 0 ? Math.round((r.filter(x => x.consent_email).length / r.length) * 100) : 0;
+
+    debugInfo('Auto-reporting metrics to Visio', { rsvps: r.length, challenges: c.length, shortlisted });
+    const result = await reportProductMetrics({
+      totalRsvps: r.length,
+      totalChallenges: c.length,
+      shortlisted,
+      todayCount,
+      consentRate,
+    });
+    if (result.ok) {
+      debugInfo('Visio auto-report success');
+    } else {
+      debugError('Visio auto-report failed', result.error);
+    }
+  }, []);
+
   async function loadData() {
     setLoading(true);
+    debugInfo('Loading data from Supabase...');
     const [rsvpRes, challengeRes] = await Promise.all([
       supabase.from('culturefest_rsvps').select('*').order('created_at', { ascending: false }),
       supabase.from('culturefest_challenges').select('*').order('created_at', { ascending: false }),
     ]);
-    if (rsvpRes.data) setRsvps(rsvpRes.data);
-    if (challengeRes.data) setChallenges(challengeRes.data);
+    if (rsvpRes.error) debugError('RSVP fetch error', rsvpRes.error.message);
+    if (challengeRes.error) debugError('Challenge fetch error', challengeRes.error.message);
+    const r = rsvpRes.data || [];
+    const c = challengeRes.data || [];
+    setRsvps(r);
+    setChallenges(c);
     setLoading(false);
+    debugInfo(`Loaded ${r.length} RSVPs, ${c.length} challenges`);
+    // Auto-report to Visio
+    autoReport(r, c);
   }
 
   async function handleRefresh() {
@@ -293,6 +340,8 @@ export default function Admin() {
     { id: 'analytics' as const, label: 'Analytics', icon: <BarChart3 size={16} /> },
     { id: 'rsvps' as const, label: `RSVPs (${rsvps.length})`, icon: <Users size={16} /> },
     { id: 'challenges' as const, label: `Challenges (${challenges.length})`, icon: <FileText size={16} /> },
+    { id: 'visio' as const, label: 'Visio Sync', icon: <Zap size={16} /> },
+    { id: 'debug' as const, label: 'Debug', icon: <Bug size={16} /> },
   ];
 
   return (
@@ -785,6 +834,274 @@ export default function Admin() {
                     );
                   })}
                   {filteredChallenges.length === 0 && <p className="text-center py-12 text-gray-400">{searchQuery ? 'No results found' : 'No applications yet'}</p>}
+                </div>
+              </div>
+            )}
+
+            {/* ─── Visio Sync Tab ─── */}
+            {tab === 'visio' && (
+              <div className="space-y-6">
+                <div className={`${isGatewayConfigured ? 'bg-green-50 border-green-200 text-green-800' : 'bg-amber-50 border-amber-200 text-amber-800'} border rounded-2xl p-6 text-sm`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    {isGatewayConfigured ? <Wifi size={16} /> : <WifiOff size={16} />}
+                    <span className="font-bold">
+                      {isGatewayConfigured ? 'Gateway connected' : 'Gateway unavailable — using direct Supabase sync'}
+                    </span>
+                  </div>
+                  <p className="text-xs opacity-80">
+                    {isGatewayConfigured
+                      ? 'AI-powered sync via Visio Gateway. Leads are enriched by AI agents.'
+                      : 'Syncing directly to Visio Workspace database. All functions work without the gateway.'}
+                    {isGeminiConfigured && ' · Gemini AI enrichment active.'}
+                    {!isGeminiConfigured && ' · Add VITE_GEMINI_API_KEY for AI-powered lead scoring & competitor scans.'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    {
+                      id: 'sync-rsvps',
+                      title: 'Sync RSVPs → CRM',
+                      desc: `Push ${rsvps.length} RSVPs as leads into Visio Workspace CRM (Hampton Music org)`,
+                      action: async () => {
+                        setSyncing('sync-rsvps');
+                        const result = await syncRsvpsToLeads(rsvps);
+                        setSyncLog(prev => [{ time: new Date().toLocaleTimeString(), action: 'Sync RSVPs', status: result.ok ? 'ok' : 'error', message: result.ok ? 'Leads created' : result.error || 'Failed' }, ...prev]);
+                        setSyncing(null);
+                      },
+                      color: 'bg-black',
+                    },
+                    {
+                      id: 'sync-challenges',
+                      title: 'Sync Challenges → CRM',
+                      desc: `Push ${challenges.length} challenge applicants as high-intent leads with scoring`,
+                      action: async () => {
+                        setSyncing('sync-challenges');
+                        const result = await syncChallengesToLeads(challenges);
+                        setSyncLog(prev => [{ time: new Date().toLocaleTimeString(), action: 'Sync Challenges', status: result.ok ? 'ok' : 'error', message: result.ok ? 'Leads created' : result.error || 'Failed' }, ...prev]);
+                        setSyncing(null);
+                      },
+                      color: 'bg-[#10a3a8]',
+                    },
+                    {
+                      id: 'report-metrics',
+                      title: 'Report Metrics',
+                      desc: 'Push product metrics to Visio Workspace (registrations, health score, consent rate)',
+                      action: async () => {
+                        setSyncing('report-metrics');
+                        const result = await reportProductMetrics({
+                          totalRsvps: rsvps.length,
+                          totalChallenges: challenges.length,
+                          shortlisted: analytics.statusMap.shortlisted + analytics.statusMap.selected,
+                          todayCount: analytics.todayCount,
+                          consentRate: analytics.consentRate,
+                        });
+                        setSyncLog(prev => [{ time: new Date().toLocaleTimeString(), action: 'Report Metrics', status: result.ok ? 'ok' : 'error', message: result.ok ? 'Metrics reported' : result.error || 'Failed' }, ...prev]);
+                        setSyncing(null);
+                      },
+                      color: 'bg-[#e63833]',
+                    },
+                    {
+                      id: 'competitor-scan',
+                      title: 'Competitor Intel Scan',
+                      desc: 'Launch research report on Southern African festivals, pricing, sponsors, and marketing',
+                      action: async () => {
+                        setSyncing('competitor-scan');
+                        const result = await runCompetitorScan();
+                        setSyncLog(prev => [{ time: new Date().toLocaleTimeString(), action: 'Competitor Scan', status: result.ok ? 'ok' : 'error', message: result.ok ? 'Scan launched — check Visio Research' : result.error || 'Failed' }, ...prev]);
+                        setSyncing(null);
+                      },
+                      color: 'bg-black',
+                    },
+                    {
+                      id: 'create-campaign',
+                      title: 'Create Email Campaign',
+                      desc: '8-week RSVP drip sequence — confirmation, Tony Duardo feature, challenge CTA, logistics',
+                      action: async () => {
+                        setSyncing('create-campaign');
+                        const result = await createRsvpCampaign();
+                        setSyncLog(prev => [{ time: new Date().toLocaleTimeString(), action: 'Create Campaign', status: result.ok ? 'ok' : 'error', message: result.ok ? 'Campaign created in Visio' : result.error || 'Failed' }, ...prev]);
+                        setSyncing(null);
+                      },
+                      color: 'bg-[#10a3a8]',
+                    },
+                  ].map(item => (
+                    <button
+                      key={item.id}
+                      onClick={item.action}
+                      disabled={!isVisioConfigured || syncing !== null}
+                      className="bg-white border border-gray-200 rounded-2xl p-6 text-left hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`w-8 h-8 rounded-full ${item.color} flex items-center justify-center text-white shrink-0`}>
+                          {syncing === item.id ? <RefreshCw size={14} className="animate-spin" /> : <Zap size={14} />}
+                        </div>
+                        <h3 className="font-display font-bold text-black text-sm">{item.title}</h3>
+                      </div>
+                      <p className="text-gray-500 text-xs leading-relaxed">{item.desc}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Sync Log */}
+                {syncLog.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                    <h3 className="font-display font-bold text-black text-sm mb-4 flex items-center gap-2">
+                      <Clock size={14} className="text-gray-400" /> Sync Log
+                    </h3>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {syncLog.map((entry, i) => (
+                        <div key={i} className="flex items-start gap-3 text-xs">
+                          <span className="text-gray-400 font-mono shrink-0">{entry.time}</span>
+                          <span className={`shrink-0 w-2 h-2 rounded-full mt-1 ${entry.status === 'ok' ? 'bg-green-500' : entry.status === 'error' ? 'bg-red-500' : 'bg-amber-500'}`} />
+                          <span className="text-gray-600"><span className="font-medium text-black">{entry.action}</span> — {entry.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Links */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                  <h3 className="font-display font-bold text-black text-sm mb-4">Visio Workspace Links</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      { label: 'CRM Leads', url: 'https://visioworkspace-corpo1.vercel.app/crm' },
+                      { label: 'Products', url: 'https://visioworkspace-corpo1.vercel.app/products' },
+                      { label: 'Campaigns', url: 'https://visioworkspace-corpo1.vercel.app/campaigns' },
+                      { label: 'Research', url: 'https://visioworkspace-corpo1.vercel.app/research' },
+                      { label: 'Analytics', url: 'https://visioworkspace-corpo1.vercel.app/analytics' },
+                    ].map(link => (
+                      <a
+                        key={link.label}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-black border border-gray-200 rounded-full px-3 py-1.5 transition-colors"
+                      >
+                        <ExternalLink size={10} /> {link.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ─── Debug Tab ─── */}
+            {tab === 'debug' && (
+              <div className="space-y-6">
+                {/* System Status */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      {isGatewayConfigured ? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-amber-500" />}
+                      <h3 className="font-display font-bold text-black text-sm">Visio Sync</h3>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {isGatewayConfigured ? 'Gateway active' : 'Direct Supabase mode'}
+                      {isGeminiConfigured ? ' · Gemini AI active' : ' · No Gemini key'}
+                    </p>
+                  </div>
+                  <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <Activity size={16} className={rsvps.length > 0 ? 'text-green-500' : 'text-amber-500'} />
+                      <h3 className="font-display font-bold text-black text-sm">Supabase</h3>
+                    </div>
+                    <p className="text-xs text-gray-500">{rsvps.length > 0 || challenges.length > 0 ? `Active — ${rsvps.length} RSVPs, ${challenges.length} challenges loaded` : 'Connected but no data yet'}</p>
+                  </div>
+                  <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      {import.meta.env.VITE_ELEVENLABS_AGENT_ID ? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-amber-500" />}
+                      <h3 className="font-display font-bold text-black text-sm">ElevenLabs Voice</h3>
+                    </div>
+                    <p className="text-xs text-gray-500">{import.meta.env.VITE_ELEVENLABS_AGENT_ID ? `Agent: ${import.meta.env.VITE_ELEVENLABS_AGENT_ID}` : 'No agent ID set — set VITE_ELEVENLABS_AGENT_ID to enable voice agent'}</p>
+                  </div>
+                </div>
+
+                {/* Environment */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                  <h3 className="font-display font-bold text-black text-sm mb-4 flex items-center gap-2">
+                    <Bug size={14} className="text-gray-400" /> Environment Check
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
+                    {[
+                      { key: 'VITE_SUPABASE_URL', set: !!import.meta.env.VITE_SUPABASE_URL },
+                      { key: 'VITE_SUPABASE_ANON_KEY', set: !!import.meta.env.VITE_SUPABASE_ANON_KEY },
+                      { key: 'VITE_ADMIN_PASSWORD', set: !!import.meta.env.VITE_ADMIN_PASSWORD },
+                      { key: 'VITE_VISIO_GATEWAY_URL', set: !!import.meta.env.VITE_VISIO_GATEWAY_URL },
+                      { key: 'VITE_VISIO_GATEWAY_KEY', set: !!import.meta.env.VITE_VISIO_GATEWAY_KEY },
+                      { key: 'VITE_GEMINI_API_KEY', set: !!import.meta.env.VITE_GEMINI_API_KEY },
+                      { key: 'VITE_ELEVENLABS_AGENT_ID', set: !!import.meta.env.VITE_ELEVENLABS_AGENT_ID },
+                    ].map(env => (
+                      <div key={env.key} className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${env.set ? 'bg-green-500' : 'bg-red-500'}`} />
+                        <span className="text-gray-600">{env.key}</span>
+                        <span className={env.set ? 'text-green-600' : 'text-red-500'}>{env.set ? 'SET' : 'MISSING'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Debug Event Log */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-display font-bold text-black text-sm flex items-center gap-2">
+                      <Activity size={14} className="text-gray-400" /> Event Log
+                    </h3>
+                    <span className="text-xs text-gray-400">{getDebugLog().length} entries</span>
+                  </div>
+                  <div className="space-y-1.5 max-h-80 overflow-y-auto">
+                    {getDebugLog().length === 0 && <p className="text-gray-400 text-xs py-4 text-center">No events logged yet</p>}
+                    {getDebugLog().map((entry, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs font-mono">
+                        <span className="text-gray-400 shrink-0">{entry.time.split('T')[1]?.slice(0, 8)}</span>
+                        <span className={`shrink-0 w-1.5 h-1.5 rounded-full mt-1.5 ${
+                          entry.level === 'error' ? 'bg-red-500' : entry.level === 'warn' ? 'bg-amber-500' : 'bg-green-500'
+                        }`} />
+                        <span className="text-gray-700">{entry.event}</span>
+                        {entry.data && <span className="text-gray-400 truncate max-w-xs">{typeof entry.data === 'string' ? entry.data : JSON.stringify(entry.data)}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Data Integrity */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                  <h3 className="font-display font-bold text-black text-sm mb-4">Data Integrity</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                    <div>
+                      <p className="text-gray-400 mb-1">RSVPs with email</p>
+                      <p className="font-bold text-black">{rsvps.filter(r => r.email).length}/{rsvps.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 mb-1">RSVPs with phone</p>
+                      <p className="font-bold text-black">{rsvps.filter(r => r.phone).length}/{rsvps.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 mb-1">Challenges with project</p>
+                      <p className="font-bold text-black">{challenges.filter(c => c.brand_or_project_name).length}/{challenges.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 mb-1">Challenges scored</p>
+                      <p className="font-bold text-black">{challenges.filter(c => c.review_score).length}/{challenges.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 mb-1">With UTM tracking</p>
+                      <p className="font-bold text-black">{[...rsvps, ...challenges].filter(x => x.utm_source).length}/{rsvps.length + challenges.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 mb-1">Email consent</p>
+                      <p className="font-bold text-black">{rsvps.filter(r => r.consent_email).length}/{rsvps.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 mb-1">Unique cities</p>
+                      <p className="font-bold text-black">{new Set([...rsvps, ...challenges].map(x => x.city)).size}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 mb-1">Unique countries</p>
+                      <p className="font-bold text-black">{new Set([...rsvps, ...challenges].map(x => x.country)).size}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

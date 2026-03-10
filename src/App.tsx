@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import RSVP from './pages/RSVP';
 import Challenge from './pages/Challenge';
@@ -10,11 +11,33 @@ import Footer from './components/Footer';
 import StickyMobileCTA from './components/StickyMobileCTA';
 import ChatBot from './components/ChatBot';
 import ElevenLabsWidget from './components/ElevenLabsWidget';
+import { trackPageView, reportPerformance, debugInfo } from './lib/analytics';
+
+function PageTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location.pathname]);
+  return null;
+}
+
+function PerformanceReporter() {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      reportPerformance();
+      debugInfo('App mounted', { timestamp: new Date().toISOString() });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+  return null;
+}
 
 export default function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen flex flex-col bg-white text-black selection:bg-black selection:text-white">
+        <PageTracker />
+        <PerformanceReporter />
         <Navbar />
         <main className="flex-grow">
           <Routes>

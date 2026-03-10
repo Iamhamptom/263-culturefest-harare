@@ -42,8 +42,20 @@ const EVENT_KNOWLEDGE: { patterns: string[]; answer: string }[] = [
     answer: 'This event sits at the intersection of artists, AI, and African innovation leadership. The keynote covers how AI systems can empower creators. The 263 Suite beta demo showcases real AI tools built for artists and builders. It\'s not a typical tech conference — it\'s culture meets systems.',
   },
   {
-    patterns: ['free', 'cost', 'price', 'pay', 'money', 'how much'],
-    answer: 'RSVP is currently open through the website. Register your interest and we\'ll share all access and pricing details directly with confirmed attendees.',
+    patterns: ['free', 'cost', 'price', 'pay', 'money', 'how much', 'ticket'],
+    answer: 'RSVP is completely FREE! Everyone who signs up gets free access to the workshop, keynote, and panel, plus a branded welcome pack and early access to the 263 Suite AI platform beta on arrival. Head to /rsvp to claim your spot.',
+  },
+  {
+    patterns: ['freebie', 'freebies', 'welcome pack', 'merch', 'swag', 'get for signing up', 'what do i get'],
+    answer: 'RSVP attendees receive: a branded welcome pack (merch, stickers, exclusive materials), early access to the 263 Suite AI platform beta, and direct access to the VisioCorp network. Creator Challenge winners get mentorship and potential collaboration with HGA Records.',
+  },
+  {
+    patterns: ['sponsor', 'partner', 'partnership', 'brand', 'collaborate', 'work together'],
+    answer: 'For sponsorship and partnership enquiries, email partnerships@visiocorp.co. We offer brand activations, media partnerships, and sponsor tiers. You can also DM @263culturefest on Instagram. The event is produced by 263 Culture Hub in partnership with VisioCorp and HGA Records.',
+  },
+  {
+    patterns: ['workshop', 'ai workshop', 'what will i learn', 'hands on', 'demo'],
+    answer: 'This is a hands-on AI workshop led by Tony Duardo exploring how AI is transforming music, content, and business across Africa. You\'ll see live demos of the 263 Suite beta platform, hear from a curated panel on African innovation, and connect with founders and creators building the next wave.',
   },
   {
     patterns: ['what is', 'about', 'tell me', 'explain', 'what\'s this'],
