@@ -102,8 +102,8 @@ export async function syncRsvpsToLeads(rsvps: Array<{
     linkedin: r.linkedin || '',
     source: '263_culturefest_rsvp',
     status: 'raw',
-    score: r.attendance_intent === 'Definitely attending' ? 60 : 40,
-    tags: ['263-culturefest-harare', ...r.role],
+    score: r.attendance_intent === 'Yes' ? 60 : 40,
+    tags: ['263-culturefest-harare', ...(r.role || [])],
     notes: `RSVP via 263 CultureFest. Roles: ${r.role?.join(', ')}. Intent: ${r.attendance_intent}.${r.instagram ? ` IG: ${r.instagram}` : ''}`,
   }));
 
@@ -120,7 +120,7 @@ export async function syncRsvpsToLeads(rsvps: Array<{
     }
   }
 
-  const { data, error } = await supabase.from('leads').upsert(leads, { onConflict: 'email' });
+  const { data, error } = await supabase.from('leads').insert(leads);
   if (error) return { ok: false, error: error.message, method: 'direct' };
   return { ok: true, data: { synced: leads.length, method: isGeminiConfigured ? 'direct+gemini' : 'direct' }, method: 'direct' };
 }
@@ -162,11 +162,11 @@ export async function syncChallengesToLeads(challenges: Array<{
     source: '263_culturefest_challenge',
     status: 'enriched',
     score: c.review_score || scoreMap[c.status] || 40,
-    tags: ['263-culturefest-harare', 'creator-challenge', ...c.primary_identity],
+    tags: ['263-culturefest-harare', 'creator-challenge', ...(c.primary_identity || [])],
     notes: `Challenge app. Identity: ${c.primary_identity?.join(', ')}. Stage: ${c.current_stage}. Building: "${c.what_are_you_building.slice(0, 150)}". Review: ${c.status}.`,
   }));
 
-  const { error } = await supabase.from('leads').upsert(leads, { onConflict: 'email' });
+  const { error } = await supabase.from('leads').insert(leads);
   if (error) return { ok: false, error: error.message, method: 'direct' };
   return { ok: true, data: { synced: leads.length }, method: 'direct' };
 }
@@ -217,13 +217,11 @@ export async function runCompetitorScan(): Promise<SyncResult> {
       `You are a competitive intelligence analyst for 263 CultureFest, a premium AI x culture workshop in Harare, Zimbabwe (April 2026). Analyze the Southern African festival landscape:\n\n1. Top 10 festivals by attendance (Afro Nation Africa, DStv Delicious, Rocking the Daisies, Blankets & Wine, Oppikoppi, Lake of Stars, Bushfire, Vic Falls Carnival, HIFA, Shoko)\n2. Ticket pricing ranges\n3. Sponsor tier models\n4. Digital marketing channels used\n5. How 263 CultureFest can differentiate (AI workshop + creator challenge + free entry)\n\nReturn as a structured brief.`
     );
     if (analysis) {
-      // Store as research report
+      // Store as research report (best-effort)
       await supabase.from('research_reports').insert({
         workspace_id: WORKSPACE_ID,
-        organization_id: HAMPTON_MUSIC_ORG_ID,
         title: '263 CultureFest Competitor Scan',
         content: analysis,
-        status: 'completed',
       }).then(() => {});
       return { ok: true, data: { analysis, source: 'gemini' }, method: 'gemini' };
     }

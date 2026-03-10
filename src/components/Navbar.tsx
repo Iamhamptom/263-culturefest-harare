@@ -33,15 +33,25 @@ export default function Navbar() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          {['About', 'Event', 'Panel', 'Challenge', 'Contact', 'FAQ'].map((item) => (
-            <a
-              key={item}
-              href={item === 'Challenge' ? '/challenge' : `/#${item.toLowerCase()}`}
-              className="text-sm font-medium text-black hover:text-gray-500 transition-colors uppercase tracking-wider"
-            >
-              {item}
-            </a>
-          ))}
+          {['About', 'Event', 'Panel', 'Challenge', 'Contact', 'FAQ'].map((item) =>
+            item === 'Challenge' ? (
+              <Link
+                key={item}
+                to="/challenge"
+                className="text-sm font-medium text-black hover:text-gray-500 transition-colors uppercase tracking-wider"
+              >
+                {item}
+              </Link>
+            ) : (
+              <a
+                key={item}
+                href={`/#${item.toLowerCase()}`}
+                className="text-sm font-medium text-black hover:text-gray-500 transition-colors uppercase tracking-wider"
+              >
+                {item}
+              </a>
+            )
+          )}
         </nav>
 
         <div className="hidden md:flex items-center gap-4">
@@ -68,16 +78,27 @@ export default function Navbar() {
           animate={{ opacity: 1, y: 0 }}
           className="md:hidden bg-white border-t border-gray-100 px-8 py-6 space-y-4"
         >
-          {['About', 'Event', 'Panel', 'Challenge', 'Contact', 'FAQ'].map((item) => (
-            <a
-              key={item}
-              href={item === 'Challenge' ? '/challenge' : `/#${item.toLowerCase()}`}
-              className="block text-sm font-medium text-black uppercase tracking-wider py-2"
-              onClick={() => setMobileOpen(false)}
-            >
-              {item}
-            </a>
-          ))}
+          {['About', 'Event', 'Panel', 'Challenge', 'Contact', 'FAQ'].map((item) =>
+            item === 'Challenge' ? (
+              <Link
+                key={item}
+                to="/challenge"
+                className="block text-sm font-medium text-black uppercase tracking-wider py-2"
+                onClick={() => setMobileOpen(false)}
+              >
+                {item}
+              </Link>
+            ) : (
+              <a
+                key={item}
+                href={`/#${item.toLowerCase()}`}
+                className="block text-sm font-medium text-black uppercase tracking-wider py-2"
+                onClick={() => setMobileOpen(false)}
+              >
+                {item}
+              </a>
+            )
+          )}
           <div className="pt-4 flex flex-col gap-3">
             <Link to="/rsvp" className="bg-black text-white text-sm font-medium px-6 py-3 rounded-full text-center">
               RSVP Now

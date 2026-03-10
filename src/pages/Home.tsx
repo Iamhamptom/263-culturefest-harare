@@ -129,10 +129,9 @@ function Preloader({ onComplete }: { onComplete: () => void }) {
     const interval = setInterval(() => {
       setIndex((prev) => (prev + 1) % items.length);
     }, 1500);
-    // Auto-dismiss after 4.5 seconds
     const timeout = setTimeout(() => onComplete(), 4500);
     return () => { clearInterval(interval); clearTimeout(timeout); };
-  }, []);
+  }, [onComplete]);
 
   return (
     <motion.div
