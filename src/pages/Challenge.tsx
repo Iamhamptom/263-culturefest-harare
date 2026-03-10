@@ -37,6 +37,18 @@ export default function Challenge() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (formData.primary_identity.length === 0) {
+      setError('Please select at least one identity.');
+      return;
+    }
+    if (!formData.current_stage) {
+      setError('Please select your current stage.');
+      return;
+    }
+    if (formData.biggest_need.length === 0) {
+      setError('Please select at least one need.');
+      return;
+    }
     setSubmitting(true);
     setError('');
 
@@ -92,9 +104,19 @@ export default function Challenge() {
   };
 
   return (
-    <div className="min-h-screen pt-40 pb-24 px-8 bg-white relative overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      className="min-h-screen pt-40 pb-24 px-8 bg-white relative overflow-hidden"
+    >
       <div className="max-w-3xl mx-auto relative z-10">
-        <div className="text-center mb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          className="text-center mb-16"
+        >
           <p className="text-gray-400 font-bold tracking-[0.15em] uppercase text-xs mb-6">CREATOR CHALLENGE</p>
           <h1 className="text-5xl md:text-7xl font-display font-extrabold tracking-tighter mb-6 text-black">
             Apply to Enter
@@ -102,7 +124,7 @@ export default function Challenge() {
           <p className="text-gray-600 text-xl max-w-2xl mx-auto">
             Submit your details, tell us what you’re building, and explain why you should be contacted with next steps. This is for people with signal.
           </p>
-        </div>
+        </motion.div>
 
         <div className="bg-white border border-gray-200 rounded-[2.5rem] p-8 md:p-16 shadow-xl">
           {/* Progress Indicator */}
@@ -419,6 +441,6 @@ export default function Challenge() {
           </form>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

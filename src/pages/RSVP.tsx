@@ -32,6 +32,18 @@ export default function RSVP() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (formData.role.length === 0) {
+      setError('Please select at least one role.');
+      return;
+    }
+    if (!formData.attendance_intent) {
+      setError('Please select your attendance intent.');
+      return;
+    }
+    if (!formData.challenge_interest) {
+      setError('Please select your challenge interest.');
+      return;
+    }
     setSubmitting(true);
     setError('');
 
@@ -78,9 +90,19 @@ export default function RSVP() {
   };
 
   return (
-    <div className="min-h-screen pt-40 pb-24 px-8 bg-white relative overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      className="min-h-screen pt-40 pb-24 px-8 bg-white relative overflow-hidden"
+    >
       <div className="max-w-3xl mx-auto relative z-10">
-        <div className="text-center mb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          className="text-center mb-16"
+        >
           <p className="text-gray-400 font-bold tracking-[0.15em] uppercase text-xs mb-6">RSVP</p>
           <h1 className="text-5xl md:text-7xl font-display font-extrabold tracking-tighter mb-6 text-black">
             Reserve Your Place
@@ -88,7 +110,7 @@ export default function RSVP() {
           <p className="text-gray-600 text-xl max-w-2xl mx-auto">
             Tell us who you are and where you’re coming from. We’ll keep you updated with event information and important announcements.
           </p>
-        </div>
+        </motion.div>
 
         <div className="bg-white border border-gray-200 rounded-[2.5rem] p-8 md:p-16 shadow-xl">
           {/* Progress Indicator */}
@@ -317,6 +339,6 @@ export default function RSVP() {
           </form>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
