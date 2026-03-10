@@ -88,6 +88,8 @@ export default function Navbar() {
           </div>
         </motion.div>
       )}
+      {/* 263 accent line */}
+      <div className="absolute bottom-0 left-0 right-0 accent-line-263" />
     </motion.header>
   );
 }

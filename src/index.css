@@ -4,6 +4,10 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --color-263-teal: #10a3a8;
+  --color-263-red: #e63833;
+  --color-263-gold: #FFD200;
+  --color-263-green: #006400;
 }
 
 body {
@@ -31,6 +35,19 @@ h1, h2, h3, h4, h5, h6 {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+/* 263 Culture Fest accent line animation */
+@keyframes shimmer-line {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.accent-line-263 {
+  height: 2px;
+  background: linear-gradient(90deg, #10a3a8, #e63833, #FFD200, #006400, #10a3a8);
+  background-size: 200% 100%;
+  animation: shimmer-line 4s ease-in-out infinite;
 }
 
 /* Reduced motion support */
