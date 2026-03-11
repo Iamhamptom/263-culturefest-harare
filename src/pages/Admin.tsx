@@ -20,6 +20,28 @@ import {
 } from 'lucide-react';
 
 const ADMIN_KEY = 'culturefest_admin_authenticated';
+const ADMIN_USER_KEY = 'culturefest_admin_user';
+const ADMIN_ROLE_KEY = 'culturefest_admin_role';
+const ADMIN_DISPLAY_KEY = 'culturefest_admin_display';
+
+type AdminRole = 'full' | 'limited';
+
+interface AdminUser {
+  password: string;
+  role: AdminRole;
+  displayName: string;
+}
+
+function getAdminUsers(): Record<string, AdminUser> {
+  try {
+    const raw = import.meta.env.VITE_ADMIN_USERS;
+    if (raw) return JSON.parse(raw);
+  } catch { /* fall through */ }
+  // Fallback: single password mode for backwards compat
+  const legacy = import.meta.env.VITE_ADMIN_PASSWORD;
+  if (legacy) return { admin: { password: legacy, role: 'full', displayName: 'Admin' } };
+  return {};
+}
 
 interface Rsvp {
   id: string;
@@ -72,18 +94,24 @@ interface ChallengeApp {
 }
 
 /* ─── Login Gate ─── */
-function LoginGate({ onAuth }: { onAuth: () => void }) {
+function LoginGate({ onAuth }: { onAuth: (role: AdminRole, displayName: string) => void }) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const adminPass = import.meta.env.VITE_ADMIN_PASSWORD;
-    if (password === adminPass) {
+    const users = getAdminUsers();
+    const key = username.toLowerCase().trim();
+    const user = users[key];
+    if (user && user.password === password) {
       sessionStorage.setItem(ADMIN_KEY, 'true');
-      onAuth();
+      sessionStorage.setItem(ADMIN_USER_KEY, key);
+      sessionStorage.setItem(ADMIN_ROLE_KEY, user.role);
+      sessionStorage.setItem(ADMIN_DISPLAY_KEY, user.displayName);
+      onAuth(user.role, user.displayName);
     } else {
-      setError('Invalid password');
+      setError('Invalid username or password');
     }
   };
 
@@ -107,8 +135,17 @@ function LoginGate({ onAuth }: { onAuth: () => void }) {
         </div>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
         <input
+          type="text"
+          placeholder="Username"
+          autoComplete="username"
+          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-black focus:outline-none focus:border-black transition-colors mb-3"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+        />
+        <input
           type="password"
           placeholder="Password"
+          autoComplete="current-password"
           className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-black focus:outline-none focus:border-black transition-colors mb-4"
           value={password}
           onChange={e => setPassword(e.target.value)}
@@ -124,10 +161,13 @@ function LoginGate({ onAuth }: { onAuth: () => void }) {
 /* ─── Main Admin ─── */
 export default function Admin() {
   const [authed, setAuthed] = useState(sessionStorage.getItem(ADMIN_KEY) === 'true');
+  const [adminRole, setAdminRole] = useState<AdminRole>((sessionStorage.getItem(ADMIN_ROLE_KEY) as AdminRole) || 'limited');
+  const [adminDisplayName, setAdminDisplayName] = useState(sessionStorage.getItem(ADMIN_DISPLAY_KEY) || '');
   const [rsvps, setRsvps] = useState<Rsvp[]>([]);
   const [challenges, setChallenges] = useState<ChallengeApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'overview' | 'analytics' | 'rsvps' | 'challenges' | 'visio' | 'debug'>('overview');
+  const isFull = adminRole === 'full';
   const [syncLog, setSyncLog] = useState<Array<{ time: string; action: string; status: 'ok' | 'error' | 'pending'; message: string }>>([]);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -333,16 +373,17 @@ export default function Admin() {
     return data;
   }, [challenges, challengeFilter, searchQuery]);
 
-  if (!authed) return <LoginGate onAuth={() => setAuthed(true)} />;
+  if (!authed) return <LoginGate onAuth={(role, displayName) => { setAdminRole(role); setAdminDisplayName(displayName); setAuthed(true); }} />;
 
-  const tabs = [
-    { id: 'overview' as const, label: 'Overview', icon: <Eye size={16} /> },
-    { id: 'analytics' as const, label: 'Analytics', icon: <BarChart3 size={16} /> },
-    { id: 'rsvps' as const, label: `RSVPs (${rsvps.length})`, icon: <Users size={16} /> },
-    { id: 'challenges' as const, label: `Challenges (${challenges.length})`, icon: <FileText size={16} /> },
-    { id: 'visio' as const, label: 'Visio Sync', icon: <Zap size={16} /> },
-    { id: 'debug' as const, label: 'Debug', icon: <Bug size={16} /> },
+  const allTabs = [
+    { id: 'overview' as const, label: 'Overview', icon: <Eye size={16} />, fullOnly: false },
+    { id: 'analytics' as const, label: 'Analytics', icon: <BarChart3 size={16} />, fullOnly: true },
+    { id: 'rsvps' as const, label: `RSVPs (${rsvps.length})`, icon: <Users size={16} />, fullOnly: false },
+    { id: 'challenges' as const, label: `Challenges (${challenges.length})`, icon: <FileText size={16} />, fullOnly: false },
+    { id: 'visio' as const, label: 'Visio Sync', icon: <Zap size={16} />, fullOnly: true },
+    { id: 'debug' as const, label: 'Debug', icon: <Bug size={16} />, fullOnly: true },
   ];
+  const tabs = allTabs.filter(t => isFull || !t.fullOnly);
 
   return (
     <motion.div
@@ -356,7 +397,12 @@ export default function Admin() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-display font-extrabold tracking-tight text-black">Command Center</h1>
-            <p className="text-gray-400 text-sm mt-1">263 CultureFest Harare — Admin Dashboard</p>
+            <p className="text-gray-400 text-sm mt-1">
+              263 CultureFest Harare — {adminDisplayName || 'Admin'}{' '}
+              <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${isFull ? 'bg-black text-white' : 'bg-gray-200 text-gray-600'}`}>
+                {adminRole}
+              </span>
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <a
@@ -374,6 +420,18 @@ export default function Admin() {
             >
               <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
               {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+            <button
+              onClick={() => {
+                sessionStorage.removeItem(ADMIN_KEY);
+                sessionStorage.removeItem(ADMIN_USER_KEY);
+                sessionStorage.removeItem(ADMIN_ROLE_KEY);
+                sessionStorage.removeItem(ADMIN_DISPLAY_KEY);
+                setAuthed(false);
+              }}
+              className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 transition-colors border border-red-200 rounded-full px-4 py-2 bg-white"
+            >
+              Logout
             </button>
           </div>
         </div>
@@ -655,9 +713,11 @@ export default function Admin() {
                       </button>
                     ))}
                   </div>
-                  <button onClick={() => exportCSV('rsvps')} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors">
-                    <Download size={16} /> Export CSV
-                  </button>
+                  {isFull && (
+                    <button onClick={() => exportCSV('rsvps')} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors">
+                      <Download size={16} /> Export CSV
+                    </button>
+                  )}
                 </div>
                 <div className="bg-white border border-gray-200 rounded-2xl overflow-x-auto">
                   <table className="w-full text-sm">
@@ -716,9 +776,11 @@ export default function Admin() {
                       </button>
                     ))}
                   </div>
-                  <button onClick={() => exportCSV('challenges')} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors">
-                    <Download size={16} /> Export CSV
-                  </button>
+                  {isFull && (
+                    <button onClick={() => exportCSV('challenges')} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors">
+                      <Download size={16} /> Export CSV
+                    </button>
+                  )}
                 </div>
                 <div className="space-y-4">
                   {filteredChallenges.map(c => {
@@ -752,7 +814,8 @@ export default function Admin() {
                               <select
                                 value={c.status || 'pending'}
                                 onChange={e => updateChallengeStatus(c.id, e.target.value)}
-                                className={`text-sm border rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-black ${
+                                disabled={!isFull}
+                                className={`text-sm border rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-black disabled:opacity-50 disabled:cursor-not-allowed ${
                                   c.status === 'selected' ? 'border-green-400 text-green-700' :
                                   c.status === 'shortlisted' ? 'border-[#10a3a8] text-[#10a3a8]' :
                                   c.status === 'rejected' ? 'border-red-300 text-red-500' :
@@ -768,7 +831,8 @@ export default function Admin() {
                               <select
                                 value={c.review_score ?? ''}
                                 onChange={e => updateReviewScore(c.id, Number(e.target.value))}
-                                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-black"
+                                disabled={!isFull}
+                                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-black disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 <option value="" disabled>Score</option>
                                 {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}/5</option>)}
@@ -818,10 +882,11 @@ export default function Admin() {
                               <p className="text-gray-400 font-medium text-xs uppercase tracking-wider mb-2">Admin Notes</p>
                               <textarea
                                 rows={3}
-                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-black transition-colors resize-none"
-                                placeholder="Add notes about this applicant..."
+                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-black transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                placeholder={isFull ? 'Add notes about this applicant...' : 'View only — notes require full access'}
                                 value={c.notes || ''}
                                 onChange={e => updateNotes(c.id, e.target.value)}
+                                disabled={!isFull}
                               />
                             </div>
                             <div className="text-xs text-gray-400">
