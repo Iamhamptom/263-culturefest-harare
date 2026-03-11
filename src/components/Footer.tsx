@@ -67,10 +67,10 @@ export default function Footer() {
               <span className="text-xl font-display font-extrabold tracking-[0.05em] text-black uppercase">263 CultureFest</span>
             </Link>
             <p className="text-gray-600 max-w-sm mb-4">
-              The Rhythm of the Nation. The Soul of the Streets.
+              Where AI meets African creativity.
             </p>
             <p className="text-gray-500 text-sm max-w-sm mb-8">
-              The ultimate intersection of Zimbabwean pride and Southern African creative excellence. A world-class platform where local icons and regional superstars share the same stage.
+              A premium AI workshop and creator challenge at the intersection of technology, music, and African innovation. Free entry. Harare, April 30 week.
             </p>
             <div className="flex gap-3">
               {socials.map(s => (
